@@ -1,0 +1,356 @@
+{
+  "name": "Pick Random LinkedIn Idea",
+  "nodes": [
+    {
+      "parameters": {
+        "filePath": "/home/node/n8n/LinkedIn_idea.csv"
+      },
+      "name": "Read CSV1",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        688
+      ],
+      "id": "85065336-0ae8-4504-9bbc-934025eac4dc"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Pick a random unused idea\nconst unused = items.filter(item => !item.json.Used || item.json.Used === '');\nif (unused.length === 0) {\n    return [{ json: { error: 'No unused ideas left!' } }];\n}\nconst randomIdea = unused[Math.floor(Math.random() * unused.length)];\nreturn [randomIdea];"
+      },
+      "name": "Pick Random Unused Idea1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        3072,
+        880
+      ],
+      "id": "de1f1ecd-2bb5-401a-8019-26342d1b6531"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "Idea",
+              "value": "={{ $json[\"﻿Idea\"] }}"
+            },
+            {
+              "name": "Category",
+              "value": "={{$json.Category}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Display Idea1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        3312,
+        880
+      ],
+      "id": "cd426864-d065-483d-bab1-4d06f8c5b93f"
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 9
+            }
+          ]
+        }
+      },
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        688
+      ],
+      "id": "6c489e50-6fec-4076-929d-d46253b02b48"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        880
+      ],
+      "id": "510c18be-ba3b-4ffa-a940-7fbc9de007bd",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "promptType": "={{ $json.Idea }}\n\nmake sure text should not exceed 3000 characters",
+        "text": "={{ $json.Idea && $json.Idea.toString().trim() ? $json.Idea.toString().trim() : 'Please provide an idea to expand on.' }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        3536,
+        896
+      ],
+      "id": "8a98a01a-8eb6-4676-a2ba-c9aa2080e86d",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-pro-latest",
+        "options": {
+          "topK": 32
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3536,
+        1120
+      ],
+      "id": "e9915314-a6e1-45f2-a541-ce21819b35e4",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "l59ssEMSWTVp2WH8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "8dfpYx8pEX",
+        "text": "={{ $('Message a model').item.json.content.parts[0].text }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        4112,
+        1152
+      ],
+      "id": "44cc38a0-fb32-4916-9cc5-ded68cb8279c",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "uJsFoMq3yI0eAZL1",
+          "name": "LinkedIn account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-exp-image-generation",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-exp-image-generation"
+        },
+        "prompt": "=Create a professional, minimal LinkedIn-style infographic image based on the following text: {{ $json.content.parts[0].text }}.\n\nRequirements:\n- Only include main headings, key highlights, or keywords visually.\n- Do NOT summarize, paraphrase, or add additional text.\n- Use a clean, modern, and professional design style.\n- Ensure readability and clarity; the image should be suitable for LinkedIn posts.\n- Avoid clutter, excessive graphics, or irrelevant icons.\n- Focus on visual emphasis (bold, color blocks, icons) for key points only.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        4080,
+        912
+      ],
+      "id": "0a275181-2048-4889-a595-4f159f653cb3",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "l59ssEMSWTVp2WH8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tufailakram8190@gmail.com",
+        "toEmail": "tufailakram81@gmail.com",
+        "subject": "Linked post update",
+        "emailFormat": "text",
+        "text": "You linked post has been posted ,check out your feed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        4272,
+        976
+      ],
+      "id": "e2212d99-5d10-4129-ad15-a7e3823c68de",
+      "name": "Send email",
+      "webhookId": "b16a77c8-966c-4147-9c79-d058d272b4ae",
+      "alwaysOutputData": true,
+      "credentials": {
+        "smtp": {
+          "id": "EyAh0XRfzj7Bj5nb",
+          "name": "SMTP account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-pro-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-pro-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.output }} \n\nYou are a professional content writer creating LinkedIn posts. \nGenerate a **modern, professional, clean, and readable LinkedIn post** based on the topic I provide. \n\nRequirements:\n1. No markdown, no backslashes, no unnecessary symbols.\n2. Keep it short, engaging, and easy to read.\n3. Include clear headings or emojis only if it looks professional.\n4. Provide actionable or insightful content for LinkedIn readers.\n5. Output should be ready to copy-paste as a LinkedIn post.\n\nTopic: [Insert your topic here]\nTone: Professional, modern, concise, approachable\nLength: About 150–250 words\n\nmake sure do not add any thing unessery as it is direct going to post in LinkedIn\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        3792,
+        1024
+      ],
+      "id": "81e5e9e8-fc17-4e4f-8a52-5e52c3fa0382",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3dWQagp4yTwphAMO",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read CSV1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Random Unused Idea1": {
+      "main": [
+        [
+          {
+            "node": "Display Idea1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Display Idea1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read CSV1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Pick Random Unused Idea1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b00eef4e-494d-4a2b-9ecd-01358724e1c4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "68dc1ea66f73c04eb20f1b5d72400d8d57b77b05669fcfc3379b6c5e4d693b75"
+  },
+  "id": "5mLzvjsmoqgVQi7k",
+  "tags": []
+}
